@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🎉 축하장 생성기</title>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  background: #e0f4ff;
+  min-height: 100vh;
+}
+header {
+  background: linear-gradient(135deg, #0077cc 0%, #00cccc 100%);
+  color: white;
+  text-align: center;
+  padding: 18px 16px 14px;
+  box-shadow: 0 3px 14px rgba(0,119,204,0.4);
+  position: sticky; top: 0; z-index: 100;
+}
+header h1 { font-size: 20px; font-weight: 900; margin-bottom: 3px; }
+header p { font-size: 12px; opacity: 0.85; }
+.wrap { max-width: 620px; margin: 0 auto; padding: 14px 13px 50px; }
+.panel {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 13px;
+  box-shadow: 0 2px 10px rgba(0,80,160,0.09);
+}
+.ptitle {
+  font-size: 13px; font-weight: 700; color: #444;
+  margin-bottom: 13px;
+  display: flex; align-items: center; gap: 7px;
+}
+.ptitle::before {
+  content: '';
+  display: block; width: 3px; height: 16px;
+  border-radius: 2px;
+  background: linear-gradient(180deg,#0088ee,#00cccc);
+  flex-shrink: 0;
+}
+.flabel { display: block; font-size: 12px; color: #777; font-weight: 700; margin-bottom: 5px; }
+input[type=text] {
+  width: 100%; padding: 11px 12px;
+  border: 1.5px solid #c8e8f8; border-radius: 9px;
+  font-size: 15px; font-family: inherit; background: #f5fbff;
+  transition: border-color 0.15s; -webkit-appearance: none;
+}
+input[type=text]:focus { outline: none; border-color: #0088ee; background: #fff; }
+
+.img-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.ibox {
+  aspect-ratio: 1; border: 2px dashed #aad4ee; border-radius: 12px;
+  position: relative; overflow: hidden; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #f0f8ff; transition: border-color 0.15s;
+}
+.ibox:hover { border-color: #0088ee; }
+.ibox.filled { border-style: solid; border-color: #0088ee; }
+.ibox input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.ibox .prev { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+.ibox .ico { font-size: 24px; }
+.ibox .lbl { font-size: 10px; color: #888; text-align: center; margin-top: 3px; font-weight: 700; line-height: 1.4; }
+.ibox.filled .ico, .ibox.filled .lbl { opacity: 0; }
+.rmv {
+  position: absolute; top: 4px; right: 4px;
+  background: rgba(0,0,0,0.55); color: white;
+  border: none; border-radius: 50%; width: 21px; height: 21px;
+  font-size: 11px; cursor: pointer; display: none;
+  align-items: center; justify-content: center; z-index: 5;
+}
+.ibox.filled .rmv { display: flex; }
+.ibox-hint { font-size: 11px; color: #aaa; margin-top: 7px; }
+
+.tab-row {
+  display: flex; gap: 0; margin-bottom: 12px;
+  border: 1.5px solid #c8e8f8; border-radius: 10px; overflow: hidden;
+}
+.tab-btn {
+  flex: 1; padding: 9px 4px; border: none; background: #f0f8ff;
+  font-size: 12px; font-weight: 700; color: #999; cursor: pointer;
+  font-family: inherit; transition: all 0.15s;
+}
+.tab-btn.active { background: linear-gradient(135deg,#0088ee,#00cccc); color: white; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+.xldrop {
+  border: 2px dashed #aad4ee; border-radius: 12px; padding: 26px 14px;
+  text-align: center; cursor: pointer; position: relative;
+  background: #f0f8ff; transition: all 0.15s;
+}
+.xldrop:hover { border-color: #0088ee; background: #e0f4ff; }
+.xldrop.ok { border-style: solid; border-color: #22c55e; background: #f0fff8; }
+.xldrop input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.xldrop .xi { font-size: 34px; margin-bottom: 6px; }
+.xldrop .xt { font-size: 14px; font-weight: 700; color: #555; }
+.xldrop .xs { font-size: 12px; color: #999; margin-top: 3px; }
+
+.paste-area {
+  width: 100%; min-height: 140px; padding: 11px 12px;
+  border: 1.5px solid #c8e8f8; border-radius: 9px;
+  font-size: 13px; font-family: 'Courier New', monospace;
+  background: #f5fbff; resize: vertical;
+  transition: border-color 0.15s; color: #333; line-height: 1.6;
+}
+.paste-area:focus { outline: none; border-color: #0088ee; background: #fff; }
+.paste-area.ok { border-color: #22c55e; background: #f0fff8; }
+.paste-hint {
+  font-size: 11.5px; color: #888; margin-top: 8px; line-height: 1.7;
+  background: #f0f8ff; border-radius: 7px; padding: 8px 10px;
+}
+.paste-hint strong { color: #0088ee; }
+.paste-status { margin-top: 8px; font-size: 13px; font-weight: 700; color: #22c55e; min-height: 20px; }
+
+.manual-form {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 7px; margin-bottom: 10px;
+}
+.m-inp {
+  width: 100%; padding: 10px 11px;
+  border: 1.5px solid #c8e8f8; border-radius: 9px;
+  font-size: 14px; font-family: inherit; background: #f5fbff;
+  transition: border-color 0.15s; -webkit-appearance: none;
+}
+.m-inp:focus { outline: none; border-color: #0088ee; }
+.m-inp.full { grid-column: 1 / -1; }
+.manual-hint {
+  font-size: 11.5px; color: #888; margin-bottom: 10px; line-height: 1.7;
+  background: #f0f8ff; border-radius: 7px; padding: 8px 10px;
+}
+.manual-hint strong { color: #0088ee; }
+.manual-status { margin-top: 8px; font-size: 13px; font-weight: 700; color: #22c55e; min-height: 20px; }
+.manual-list-wrap { margin-top: 10px; overflow-x: auto; border-radius: 8px; }
+.del-btn { background: none; border: none; color: #e05; cursor: pointer; font-size: 14px; padding: 2px 4px; }
+
+.info { background: #f0f8ff; border-radius: 9px; padding: 11px 12px; font-size: 12.5px; color: #555; line-height: 1.75; margin-bottom: 12px; }
+.info strong { color: #0088ee; }
+
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 14px; border: none; border-radius: 12px;
+  font-size: 16px; font-weight: 700; font-family: inherit;
+  cursor: pointer; transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s, filter 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-gen { background: linear-gradient(135deg,#0088ee,#00cccc); color: white; margin-bottom: 10px; box-shadow: 0 4px 14px rgba(0,136,238,0.35); }
+.btn-zip { background: linear-gradient(135deg,#f6546a,#ff8c42); color: white; margin-bottom: 14px; box-shadow: 0 4px 14px rgba(246,84,106,0.3); }
+.btn-clr { background: #f0f0f8; color: #e05; font-size: 12px; padding: 8px; margin-top: 7px; transition: background 0.15s; }
+.btn-clr:hover { background: #f8e0e6; }
+.btn-add { background: linear-gradient(135deg,#22c55e,#16a34a); color: white; font-size: 15px; padding: 12px; margin-bottom: 6px; box-shadow: 0 3px 10px rgba(34,197,94,0.28); }
+@media (hover: hover) {
+  .btn-gen:not(:disabled):hover { filter: brightness(1.06); box-shadow: 0 6px 18px rgba(0,136,238,0.42); transform: translateY(-1px); }
+  .btn-zip:not(:disabled):hover { filter: brightness(1.06); box-shadow: 0 6px 18px rgba(246,84,106,0.38); transform: translateY(-1px); }
+  .btn-add:not(:disabled):hover { filter: brightness(1.06); box-shadow: 0 5px 14px rgba(34,197,94,0.36); transform: translateY(-1px); }
+}
+
+.prog { margin-top: 10px; }
+.prog-bar { height: 6px; background: #eee; border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; background: linear-gradient(90deg,#0088ee,#00cccc); border-radius: 3px; transition: width 0.2s ease; width: 0; }
+.prog-txt { font-size: 12px; color: #888; text-align: center; margin-top: 6px; font-weight: 700; }
+
+.badge { background: #0088ee; color: white; border-radius: 20px; padding: 1px 10px; font-size: 12px; font-weight: 700; margin-left: 6px; }
+.cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.cthumb { border-radius: 10px; overflow: hidden; position: relative; box-shadow: 0 2px 10px rgba(0,0,0,0.14); transition: box-shadow 0.15s, transform 0.15s; animation: cardIn 0.35s ease backwards; }
+.cthumb img { width: 100%; display: block; }
+@media (hover: hover) {
+  .cthumb:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.22); transform: translateY(-2px); }
+}
+@keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.cthumb .clbl { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent,rgba(0,0,0,0.68)); color: white; font-size: 9.5px; font-weight: 700; padding: 14px 6px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cthumb .cdl { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 7px; padding: 4px 8px; font-size: 13px; cursor: pointer; }
+
+.preview-table-wrap { margin-top: 10px; overflow-x: auto; border-radius: 8px; }
+.preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.preview-table th { background: #0088ee; color: white; padding: 6px 8px; text-align: left; }
+.preview-table td { padding: 5px 8px; border-bottom: 1px solid #eee; color: #333; }
+.preview-table tr:last-child td { border-bottom: none; }
+.preview-table tr:nth-child(even) td { background: #f0f8ff; }
+
+.hidden { display: none !important; }
+
+#resultPanel:not(.hidden) { animation: fadeUp 0.35s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎉 축하장 생성기</h1>
+  <p>데이터 입력 → 카드 자동 생성 → PNG / ZIP 다운로드</p>
+</header>
+
+<div class="wrap">
+
+  <div class="panel">
+    <div class="ptitle">① 공통 설정</div>
+    <label class="flabel">상단 제목 (전체 카드 공통)</label>
+    <input type="text" id="batchTitle" placeholder="예: 플러스원 입금을 축하합니다.">
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">② 이미지 업로드 (선택)</div>
+    <div class="img-grid">
+      <div>
+        <span class="flabel">배경</span>
+        <div class="ibox" id="bgBox">
+          <input type="file" accept="image/*" onchange="loadImg(this,'bg')">
+          <div class="ico">🖼️</div>
+          <div class="lbl">배경<br>업로드</div>
+          <button class="rmv" onclick="rmImg(event,'bg')">✕</button>
+        </div>
+      </div>
+      <div>
+        <span class="flabel">좌측 상품</span>
+        <div class="ibox" id="p1Box">
+          <input type="file" accept="image/*" onchange="loadImg(this,'p1')">
+          <div class="ico">📦</div>
+          <div class="lbl">상품1<br>(좌)</div>
+          <button class="rmv" onclick="rmImg(event,'p1')">✕</button>
+        </div>
+      </div>
+      <div>
+        <span class="flabel">우측 상품</span>
+        <div class="ibox" id="p2Box">
+          <input type="file" accept="image/*" onchange="loadImg(this,'p2')">
+          <div class="ico">📦</div>
+          <div class="lbl">상품2<br>(우)</div>
+          <button class="rmv" onclick="rmImg(event,'p2')">✕</button>
+        </div>
+      </div>
+    </div>
+    <div class="ibox-hint">배경 미업로드 시 여름 바다 테마 + 갈매기 · 파도 · 튜브 자동 적용</div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">③ 데이터 입력</div>
+
+    <div class="tab-row">
+      <button class="tab-btn active" id="tabPaste" onclick="switchTab('paste')">📋 붙여넣기</button>
+      <button class="tab-btn" id="tabFile" onclick="switchTab('file')">📊 파일 업로드</button>
+      <button class="tab-btn" id="tabManual" onclick="switchTab('manual')">✍️ 수기입력</button>
+    </div>
+
+    <div class="tab-pane active" id="paneP">
+      <div class="paste-hint">
+        엑셀에서 셀 범위 선택 후 <strong>Ctrl+C → 여기에 Ctrl+V</strong><br>
+        컬럼 순서: <strong>지역 | 지사명 | FC이름 | 타입 | 금액</strong><br>
+        첫 줄에 헤더(지역, 지사명…)가 있어도 자동 제거
+      </div>
+      <textarea
+        class="paste-area"
+        id="pasteArea"
+        placeholder="엑셀에서 복사한 내용을 여기에 붙여넣으세요&#10;&#10;예시:&#10;강원	성화지사	서성이FC	New플러스원	월초 21만&#10;강북	무교에이엠지사	김정숙FC	가족대표	6만"
+        oninput="parsePaste()"
+        onpaste="setTimeout(parsePaste,0)"
+      ></textarea>
+      <div class="paste-status" id="pasteStatus"></div>
+      <button class="btn btn-clr" onclick="clearPaste()">✕ 초기화</button>
+      <div class="preview-table-wrap hidden" id="previewWrap">
+        <table class="preview-table" id="previewTable"></table>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="paneF">
+      <div class="info">
+        필요 컬럼: <strong>지역 | 지사명 | FC이름 | 타입 | 금액</strong><br>
+        예) 강원 | 성화지사 | 서성이FC | New플러스원 | 월초 21만<br>
+        첫 행은 헤더, 2행부터 데이터로 읽습니다.
+      </div>
+      <div class="xldrop" id="xlDrop">
+        <input type="file" accept=".xlsx,.xls,.csv" id="xlFile" onchange="loadFile(this)">
+        <div class="xi">📊</div>
+        <div class="xt" id="xlTxt">파일 탭해서 업로드</div>
+        <div class="xs" id="xlSub">.xlsx / .xls / .csv 지원</div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="paneM">
+      <div class="manual-hint">
+        항목을 직접 입력하고 <strong>행 추가</strong>를 누르세요<br>
+        금액 입력 후 <strong>Enter</strong>로 빠르게 추가 가능
+      </div>
+      <div class="manual-form">
+        <input type="text" class="m-inp" id="mJiyeok" placeholder="지역 (예: 강원)">
+        <input type="text" class="m-inp" id="mJisa" placeholder="지사명 (예: 성화지사)">
+        <input type="text" class="m-inp" id="mFC" placeholder="FC이름 (예: 서성이FC)">
+        <input type="text" class="m-inp" id="mType" placeholder="타입 (예: New플러스원)">
+        <input type="text" class="m-inp full" id="mAmt" placeholder="금액 (예: 월초 21만)" onkeydown="if(event.key==='Enter')addManualRow()">
+      </div>
+      <button class="btn btn-add" onclick="addManualRow()">+ 행 추가</button>
+      <div class="manual-status" id="manualStatus"></div>
+      <div class="manual-list-wrap hidden" id="manualListWrap">
+        <table class="preview-table" id="manualList"></table>
+        <button class="btn btn-clr" onclick="clearManual()" style="margin-top:8px">✕ 전체 초기화</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">④ 생성</div>
+    <button class="btn btn-gen" id="genBtn" onclick="genAll()">🎨 축하장 생성하기</button>
+    <div class="prog hidden" id="progWrap">
+      <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+      <div class="prog-txt" id="progTxt"></div>
+    </div>
+  </div>
+
+  <div class="panel hidden" id="resultPanel">
+    <div class="ptitle">✅ 완료 <span class="badge" id="cntBadge">0</span></div>
+    <button class="btn btn-zip" id="zipBtn" onclick="dlZip()">📥 전체 ZIP 다운로드</button>
+    <div class="cards-grid" id="cardsGrid"></div>
+  </div>
+
+</div>
+
+<script>
+const S = { bg: null, p1: null, p2: null, rows: [], manualRows: [], cards: [] };
+
+// 제목 localStorage 자동 저장/복원
+(function() {
+  const el = document.getElementById('batchTitle');
+  const saved = localStorage.getItem('chuhajang_title');
+  el.value = (saved !== null && saved !== '') ? saved : '플러스원 입금을 축하합니다.';
+  el.addEventListener('input', function() {
+    localStorage.setItem('chuhajang_title', this.value);
+  });
+})();
+
+// ─── Tab ───
+function switchTab(t) {
+  ['Paste','File','Manual'].forEach(n => {
+    const key = n === 'Paste' ? 'paste' : n === 'File' ? 'file' : 'manual';
+    document.getElementById('tab'+n).classList.toggle('active', t===key);
+    const pane = n === 'Paste' ? 'paneP' : n === 'File' ? 'paneF' : 'paneM';
+    document.getElementById(pane).classList.toggle('active', t===key);
+  });
+}
+
+// ─── Image ───
+function loadImg(input, key) {
+  const file = input.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      S[key] = img;
+      const ids = { bg:'bgBox', p1:'p1Box', p2:'p2Box' };
+      const box = document.getElementById(ids[key]);
+      box.classList.add('filled');
+      let pv = box.querySelector('.prev');
+      if (!pv) { pv = document.createElement('img'); pv.className='prev'; box.appendChild(pv); }
+      pv.src = e.target.result;
+    };
+    img.src = e.target.result;
+  };
+  r.readAsDataURL(file);
+}
+function rmImg(e, key) {
+  e.stopPropagation(); S[key] = null;
+  const ids = { bg:'bgBox', p1:'p1Box', p2:'p2Box' };
+  const box = document.getElementById(ids[key]);
+  box.classList.remove('filled');
+  const pv = box.querySelector('.prev'); if (pv) pv.remove();
+  const inp = box.querySelector('input'); if (inp) inp.value = '';
+}
+
+// ─── Paste ───
+const HEADERS = ['지역','지사명','fc이름','fc','이름','타입','종류','구분','금액','입금','달성'];
+function isHeaderRow(row) {
+  return row.some(c => HEADERS.includes(String(c).toLowerCase().replace(/\s/g,'')));
+}
+function parseTSV(text) {
+  const lines = text.trim().split(/\r?\n/).filter(l=>l.trim());
+  if (!lines.length) return [];
+  const rows = lines.map(l => l.split('\t').map(c=>c.trim()));
+  let dataRows = rows, colMap = null;
+  if (isHeaderRow(rows[0])) {
+    const hdr = rows[0].map(h=>String(h).toLowerCase().replace(/\s/g,''));
+    const fi = (...ks) => { for(const k of ks){ const i=hdr.findIndex(h=>h.includes(k)); if(i>=0)return i; } return -1; };
+    colMap = { 지역:fi('지역'), 지사명:fi('지사명','지사'), FC이름:fi('fc이름','fc명','fc','이름','담당'), 타입:fi('타입','종류','구분','내용'), 금액:fi('금액','입금','달성') };
+    dataRows = rows.slice(1);
+  }
+  return dataRows.filter(r=>r.some(c=>c!=='')).map(r => {
+    if (colMap) {
+      const g=(k,fb)=>String(r[colMap[k]>=0?colMap[k]:fb]??'').trim();
+      return {지역:g('지역',0),지사명:g('지사명',1),FC이름:g('FC이름',2),타입:g('타입',3),금액:g('금액',4)};
+    }
+    return {지역:r[0]||'',지사명:r[1]||'',FC이름:r[2]||'',타입:r[3]||'',금액:r[4]||''};
+  }).filter(r=>r.지역||r.FC이름);
+}
+function parsePaste() {
+  const text = document.getElementById('pasteArea').value;
+  const rows = parseTSV(text);
+  S.rows = rows;
+  const st=document.getElementById('pasteStatus'), pw=document.getElementById('previewWrap'), pa=document.getElementById('pasteArea');
+  if (!text.trim()) { st.textContent=''; pw.classList.add('hidden'); pa.classList.remove('ok'); return; }
+  if (!rows.length) { st.textContent='⚠️ 데이터를 읽지 못했습니다.'; pw.classList.add('hidden'); pa.classList.remove('ok'); return; }
+  st.textContent=`✅ ${rows.length}건 인식됨`; pa.classList.add('ok');
+  const preview=rows.slice(0,5), cols=['지역','지사명','FC이름','타입','금액'];
+  let html='<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>';
+  preview.forEach(r=>{ html+='<tr>'+cols.map(c=>`<td>${r[c]||''}</td>`).join('')+'</tr>'; });
+  if (rows.length>5) html+=`<tr><td colspan="5" style="color:#aaa;text-align:center;padding:6px">… 외 ${rows.length-5}건</td></tr>`;
+  document.getElementById('previewTable').innerHTML=html;
+  pw.classList.remove('hidden');
+}
+function clearPaste() {
+  document.getElementById('pasteArea').value='';
+  document.getElementById('pasteArea').classList.remove('ok');
+  document.getElementById('pasteStatus').textContent='';
+  document.getElementById('previewWrap').classList.add('hidden');
+  S.rows=[];
+}
+
+// ─── Manual ───
+function addManualRow() {
+  const 지역=document.getElementById('mJiyeok').value.trim();
+  const 지사명=document.getElementById('mJisa').value.trim();
+  const FC이름=document.getElementById('mFC').value.trim();
+  const 타입=document.getElementById('mType').value.trim();
+  const 금액=document.getElementById('mAmt').value.trim();
+  if (!지역&&!FC이름) { alert('지역 또는 FC이름을 입력해주세요.'); return; }
+  S.manualRows.push({지역,지사명,FC이름,타입,금액});
+  ['mJiyeok','mJisa','mFC','mType','mAmt'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mJiyeok').focus();
+  renderManualList();
+}
+function removeManualRow(i) { S.manualRows.splice(i,1); renderManualList(); }
+function clearManual() { S.manualRows=[]; renderManualList(); }
+function renderManualList() {
+  const wrap=document.getElementById('manualListWrap'), st=document.getElementById('manualStatus');
+  if (!S.manualRows.length) { wrap.classList.add('hidden'); st.textContent=''; return; }
+  st.textContent=`✅ ${S.manualRows.length}건 입력됨`;
+  const cols=['지역','지사명','FC이름','타입','금액'];
+  let html='<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'<th style="width:30px"></th></tr>';
+  S.manualRows.forEach((r,i)=>{
+    html+='<tr>'+cols.map(c=>`<td>${r[c]||''}</td>`).join('')+`<td><button class="del-btn" onclick="removeManualRow(${i})">✕</button></td></tr>`;
+  });
+  document.getElementById('manualList').innerHTML=html;
+  wrap.classList.remove('hidden');
+}
+
+// ─── File ───
+function loadFile(input) {
+  const file=input.files[0]; if (!file) return;
+  const ext=file.name.split('.').pop().toLowerCase();
+  if (ext==='csv') { const r=new FileReader(); r.onload=e=>parseCSV(e.target.result,file.name); r.readAsText(file,'utf-8'); }
+  else { loadSheetJS(()=>{ const r=new FileReader(); r.onload=e=>{ try{ const wb=XLSX.read(e.target.result,{type:'binary'}); const ws=wb.Sheets[wb.SheetNames[0]]; applyRawRows(XLSX.utils.sheet_to_json(ws,{header:1,defval:''}),file.name); }catch(err){alert('파일 읽기 오류: '+err.message);} }; r.readAsBinaryString(file); }); }
+}
+let _sheetJSLoaded=false;
+function loadSheetJS(cb) {
+  if (_sheetJSLoaded){cb();return;} const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=()=>{_sheetJSLoaded=true;cb();}; document.head.appendChild(s);
+}
+function parseCSV(text,name) {
+  const lines=text.trim().split(/\r?\n/).filter(l=>l.trim());
+  applyRawRows(lines.map(l=>l.split(',').map(c=>c.replace(/^"|"$/g,'').trim())),name);
+}
+function applyRawRows(raw,name) {
+  if (raw.length<2){alert('데이터가 없습니다.');return;}
+  const hdr=raw[0].map(h=>String(h).toLowerCase().replace(/\s/g,''));
+  const fi=(...ks)=>{for(const k of ks){const i=hdr.findIndex(h=>h.includes(k));if(i>=0)return i;}return -1;};
+  const cols={지역:fi('지역'),지사명:fi('지사명','지사'),FC이름:fi('fc이름','fc명','fc','이름','담당'),타입:fi('타입','종류','구분','내용'),금액:fi('금액','입금','달성')};
+  if(cols.지역<0)cols.지역=0;if(cols.지사명<0)cols.지사명=1;if(cols.FC이름<0)cols.FC이름=2;if(cols.타입<0)cols.타입=3;if(cols.금액<0)cols.금액=4;
+  S.rows=[];
+  for(let i=1;i<raw.length;i++){
+    const rw=raw[i]; if(!rw||rw.every(c=>c===''||c==null)) continue;
+    const item={지역:String(rw[cols.지역]??'').trim(),지사명:String(rw[cols.지사명]??'').trim(),FC이름:String(rw[cols.FC이름]??'').trim(),타입:String(rw[cols.타입]??'').trim(),금액:String(rw[cols.금액]??'').trim()};
+    if(item.지역||item.FC이름) S.rows.push(item);
+  }
+  document.getElementById('xlDrop').classList.add('ok');
+  document.getElementById('xlTxt').textContent=`✅ ${S.rows.length}건 로드: ${name}`;
+  document.getElementById('xlSub').textContent='다른 파일로 교체하려면 다시 탭';
+}
+
+// ─── Generate ───
+function getRows() {
+  return document.getElementById('paneM').classList.contains('active') ? S.manualRows : S.rows;
+}
+async function genAll() {
+  const rows=getRows();
+  if (!rows.length){alert('먼저 데이터를 입력해주세요.');return;}
+  const btn=document.getElementById('genBtn');
+  btn.disabled=true; btn.textContent='⏳ 생성 중...';
+  const pw=document.getElementById('progWrap'),pf=document.getElementById('progFill'),pt=document.getElementById('progTxt');
+  pw.classList.remove('hidden');
+  try {
+    try {
+      await Promise.all([
+        document.fonts.load('400 80px "Black Han Sans"'),
+        document.fonts.load('400 195px "Black Han Sans"'),
+      ]);
+    } catch(e){}
+    await new Promise(r=>setTimeout(r,200));
+    const title=document.getElementById('batchTitle').value.trim();
+    S.cards=[];
+    for(let i=0;i<rows.length;i++){
+      pt.textContent=`생성 중... ${i+1} / ${rows.length}`;
+      pf.style.width=`${((i+1)/rows.length)*100}%`;
+      await new Promise(r=>setTimeout(r,8));
+      const du=drawCard(rows[i],title);
+      const nm=`${rows[i].지역}_${rows[i].FC이름}_${rows[i].타입}${rows[i].금액}`.replace(/[<>:"/\\|?*]/g,'');
+      S.cards.push({dataUrl:du,name:nm});
+    }
+    pt.textContent=`✅ ${rows.length}장 완료!`;
+    showCards();
+  } catch(e) {
+    alert('카드 생성 중 오류가 발생했습니다: '+e.message);
+  } finally {
+    btn.disabled=false; btn.textContent='🎨 다시 생성';
+  }
+}
+
+// ─── Canvas ───
+const W=1100, H=816;
+const F = "'Black Han Sans','Noto Sans KR',sans-serif";
+
+// 텍스트 길이에 따라 폭을 초과하지 않도록 폰트 크기를 줄여준다 (긴 제목/이름 잘림 방지)
+function fitFont(cx, text, maxSize, minSize, maxWidth) {
+  let size = maxSize;
+  cx.font = `400 ${size}px ${F}`;
+  while (size > minSize && cx.measureText(text).width > maxWidth) {
+    size -= 2;
+    cx.font = `400 ${size}px ${F}`;
+  }
+  return size;
+}
+
+function drawCard(item, batchTitle) {
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+  const cx=cv.getContext('2d');
+
+  // 배경
+  if (S.bg) {
+    const ir=S.bg.width/S.bg.height, cr=W/H; let sx,sy,sw,sh;
+    if(ir>cr){sh=S.bg.height;sw=sh*cr;sx=(S.bg.width-sw)/2;sy=0;}
+    else{sw=S.bg.width;sh=sw/cr;sx=0;sy=(S.bg.height-sh)/2;}
+    cx.drawImage(S.bg,sx,sy,sw,sh,0,0,W,H);
+  } else {
+    drawBeachBackground(cx);
+  }
+
+  // 상품 이미지
+  const PS=185, PY=22, PP=18;
+  function drawProd(img,bx){
+    if(!img)return;
+    const r=img.width/img.height; let pw=PS,ph=PS;
+    if(r>1)ph=pw/r; else pw=ph*r;
+    cx.save(); cx.shadowColor='rgba(255,220,50,0.7)'; cx.shadowBlur=24;
+    cx.drawImage(img,bx+(PS-pw)/2,PY+(PS-ph)/2,pw,ph); cx.restore();
+  }
+  drawProd(S.p1, PP); drawProd(S.p2, W-PP-PS);
+
+  // FC이름 → 이름 + FC 분리
+  const fullFC = item.FC이름 || '';
+  const fcMatch = fullFC.match(/^(.+?)\s*FC$/i);
+  const fcName   = fcMatch ? fcMatch[1].trim() : fullFC;
+  const fcSuffix = fcMatch ? 'FC' : '';
+
+  // ── 상단 제목 (핑크) ──
+  if (batchTitle) {
+    cx.save();
+    fitFont(cx, batchTitle, 80, 34, W*0.88);
+    cx.textAlign='center'; cx.textBaseline='middle';
+    cx.strokeStyle='#1A0030'; cx.lineWidth=10; cx.lineJoin='round';
+    cx.strokeText(batchTitle, W/2, 90);
+    const tg=cx.createLinearGradient(W/2-W*0.37,0,W/2+W*0.37,0);
+    tg.addColorStop(0,'#FF77CC'); tg.addColorStop(0.5,'#FF0077'); tg.addColorStop(1,'#FF77CC');
+    cx.fillStyle=tg; cx.fillText(batchTitle, W/2, 90);
+    cx.restore();
+  }
+
+  // ── 지역 (시안/청록) ──
+  cx.save();
+  fitFont(cx, item.지역||'', 112, 48, W*0.8);
+  cx.textAlign='center'; cx.textBaseline='middle';
+  const RY=265;
+  cx.strokeStyle='#002244'; cx.lineWidth=9; cx.lineJoin='round';
+  cx.strokeText(item.지역||'', W/2, RY);
+  const rg=cx.createLinearGradient(W/2-160,RY-60,W/2+160,RY+60);
+  rg.addColorStop(0,'#00EEFF'); rg.addColorStop(0.5,'#00C8E0'); rg.addColorStop(1,'#00EEFF');
+  cx.fillStyle=rg; cx.fillText(item.지역||'', W/2, RY);
+  cx.restore();
+
+  // ── FC이름 - 이름 부분 (노란색/골드) ──
+  cx.save();
+  fitFont(cx, fcName, 195, 80, W*0.62);
+  cx.textAlign='center'; cx.textBaseline='middle';
+  const NY=455;
+  const nameW=cx.measureText(fcName).width;
+  cx.strokeStyle='#3A1800'; cx.lineWidth=13; cx.lineJoin='round';
+  cx.strokeText(fcName, W/2, NY);
+  const ng=cx.createLinearGradient(W/2-nameW/2,NY-100,W/2+nameW/2,NY+100);
+  ng.addColorStop(0,'#FFE500'); ng.addColorStop(0.4,'#FFDD00'); ng.addColorStop(0.7,'#FFC000'); ng.addColorStop(1,'#FFAA00');
+  cx.fillStyle=ng; cx.fillText(fcName, W/2, NY);
+  cx.restore();
+
+  // ── 지사명 (왼쪽 흰색 작게) + FC 라벨 (오른쪽 흰색 작게) ──
+  const gap=32;
+  const leftX = W/2 - nameW/2 - gap;
+  const rightX = W/2 + nameW/2 + gap;
+  cx.save();
+  cx.shadowColor='rgba(0,0,40,0.9)'; cx.shadowBlur=8; cx.shadowOffsetX=1; cx.shadowOffsetY=2;
+  cx.textBaseline='middle';
+  if (item.지사명) {
+    fitFont(cx, item.지사명, 50, 26, Math.max(leftX - 40, 60));
+    cx.textAlign='right'; cx.fillStyle='#FFFFFF';
+    cx.fillText(item.지사명, Math.max(leftX, 40), NY);
+  }
+  if (fcSuffix) {
+    fitFont(cx, fcSuffix, 50, 26, Math.max(W - 40 - rightX, 60));
+    cx.textAlign='left'; cx.fillStyle='#FFFFFF';
+    cx.fillText(fcSuffix, Math.min(rightX, W-40), NY);
+  }
+  cx.restore();
+
+  // ── 타입+금액 (초록/민트) ──
+  const amtTxt=`<${item.타입} ${item.금액}>`;
+  cx.save();
+  fitFont(cx, amtTxt, 80, 34, W*0.88);
+  cx.textAlign='center'; cx.textBaseline='middle';
+  const AY=682;
+  cx.strokeStyle='#002215'; cx.lineWidth=7; cx.lineJoin='round';
+  cx.strokeText(amtTxt, W/2, AY);
+  const ag=cx.createLinearGradient(0,AY-40,0,AY+40);
+  ag.addColorStop(0,'#00FF99'); ag.addColorStop(0.45,'#00EE77'); ag.addColorStop(1,'#00FF88');
+  cx.fillStyle=ag; cx.fillText(amtTxt, W/2, AY);
+  cx.restore();
+
+  return cv.toDataURL('image/png');
+}
+
+// ─── 여름 바다 배경 ───
+function drawBeachBackground(cx) {
+  // 하늘
+  const skyG = cx.createLinearGradient(0, 0, 0, H * 0.58);
+  skyG.addColorStop(0, '#0099FF');
+  skyG.addColorStop(0.3, '#33AAFF');
+  skyG.addColorStop(0.65, '#77CCFF');
+  skyG.addColorStop(1, '#BBE8FD');
+  cx.fillStyle = skyG;
+  cx.fillRect(0, 0, W, H * 0.58);
+
+  // 태양 (우상단)
+  const sx = W * 0.87, sy = H * 0.14, sr = 62;
+  // 광채
+  const sg = cx.createRadialGradient(sx, sy, 0, sx, sy, sr * 3.2);
+  sg.addColorStop(0, 'rgba(255,240,60,0.6)');
+  sg.addColorStop(0.4, 'rgba(255,210,0,0.22)');
+  sg.addColorStop(1, 'rgba(255,180,0,0)');
+  cx.save(); cx.fillStyle = sg;
+  cx.beginPath(); cx.arc(sx, sy, sr * 3.2, 0, Math.PI * 2); cx.fill(); cx.restore();
+  // 몸체
+  cx.save();
+  const sb = cx.createRadialGradient(sx - 14, sy - 14, 4, sx, sy, sr);
+  sb.addColorStop(0, '#FFFDE7'); sb.addColorStop(0.5, '#FFD700'); sb.addColorStop(1, '#FFA000');
+  cx.fillStyle = sb;
+  cx.beginPath(); cx.arc(sx, sy, sr, 0, Math.PI * 2); cx.fill();
+  // 광선
+  cx.globalAlpha = 0.45; cx.strokeStyle = '#FFD000'; cx.lineWidth = 5; cx.lineCap = 'round';
+  for (let a = 0; a < Math.PI * 2; a += Math.PI / 7) {
+    cx.beginPath();
+    cx.moveTo(sx + Math.cos(a) * (sr + 14), sy + Math.sin(a) * (sr + 14));
+    cx.lineTo(sx + Math.cos(a) * (sr + 48), sy + Math.sin(a) * (sr + 48));
+    cx.stroke();
+  }
+  cx.restore();
+
+  // 구름 (x 좌표 W 비율로)
+  function cloud(x, y, s, a) {
+    cx.save(); cx.globalAlpha = a; cx.fillStyle = 'rgba(255,255,255,0.96)';
+    cx.shadowColor = 'rgba(100,180,255,0.3)'; cx.shadowBlur = 10;
+    [[0,0,1],[.33,-.2,.8],[.66,-.07,.92],[1,.06,.73],[.48,.22,.88],[.17,.16,.78]].forEach(([px,py,pr]) => {
+      cx.beginPath(); cx.arc(x + px*s*128, y + py*s*128, pr*s*40, 0, Math.PI*2); cx.fill();
+    });
+    cx.restore();
+  }
+  cloud(W*0.038, 65, 1.0, 0.9);
+  cloud(W*0.257, 42, 0.82, 0.82);
+  cloud(W*0.542, 55, 0.78, 0.76);
+  cloud(W*0.744, 48, 0.88, 0.86);
+  cloud(W*0.919, 68, 0.72, 0.73);
+
+  // 바다
+  const oceanG = cx.createLinearGradient(0, H * 0.52, 0, H);
+  oceanG.addColorStop(0, '#00D8F0');
+  oceanG.addColorStop(0.2, '#00A8C8');
+  oceanG.addColorStop(0.55, '#0070A8');
+  oceanG.addColorStop(1, '#003F80');
+  cx.fillStyle = oceanG;
+  cx.fillRect(0, H * 0.52, W, H * 0.48);
+
+  // 수평선 빛반사
+  const hmG = cx.createLinearGradient(0, H * 0.5, 0, H * 0.62);
+  hmG.addColorStop(0, 'rgba(180,238,255,0)');
+  hmG.addColorStop(0.45, 'rgba(180,238,255,0.48)');
+  hmG.addColorStop(1, 'rgba(180,238,255,0)');
+  cx.fillStyle = hmG; cx.fillRect(0, H * 0.5, W, H * 0.12);
+
+  // 파도 레이어들
+  function wave(wy, col, alpha, amp, freq) {
+    cx.save(); cx.globalAlpha = alpha;
+    cx.beginPath(); cx.moveTo(0, wy);
+    for (let x = 0; x <= W; x += 8)
+      cx.lineTo(x, wy + Math.sin(x * freq + wy * 0.008) * amp);
+    cx.lineTo(W, H); cx.lineTo(0, H); cx.closePath();
+    cx.fillStyle = col; cx.fill(); cx.restore();
+  }
+  wave(H * 0.660, '#009FCC', 0.55, 22, 0.015);
+  wave(H * 0.725, '#007EA8', 0.62, 17, 0.019);
+  wave(H * 0.790, '#006590', 0.58, 13, 0.023);
+  wave(H * 0.852, '#004E7A', 0.68, 10, 0.027);
+
+  // 파도 흰 거품 (물마루)
+  cx.save(); cx.globalAlpha = 0.55; cx.lineCap = 'round';
+  [[H*0.660, 22, 0.015], [H*0.725, 17, 0.019], [H*0.790, 13, 0.023]].forEach(([wy, amp, freq]) => {
+    cx.strokeStyle = 'rgba(215,245,255,0.9)'; cx.lineWidth = 4;
+    cx.beginPath(); cx.moveTo(0, wy);
+    for (let x = 0; x <= W; x += 8) cx.lineTo(x, wy + Math.sin(x * freq + wy * 0.008) * amp);
+    cx.stroke();
+  });
+  cx.restore();
+
+  // 갈매기 (x 좌표 W 비율로)
+  function gull(x, y, s, a) {
+    cx.save(); cx.globalAlpha = a;
+    cx.strokeStyle = '#1A2A4A'; cx.lineWidth = s * 3.5; cx.lineCap = 'round';
+    cx.beginPath(); cx.moveTo(x - s*22, y + s*4);
+    cx.quadraticCurveTo(x - s*11, y - s*10, x, y); cx.stroke();
+    cx.beginPath(); cx.moveTo(x, y);
+    cx.quadraticCurveTo(x + s*11, y - s*10, x + s*22, y + s*4); cx.stroke();
+    cx.restore();
+  }
+  gull(W*0.115, 143, 1.3, 0.88);
+  gull(W*0.150, 122, 1.0, 0.76);
+  gull(W*0.178, 158, 1.15, 0.72);
+  gull(W*0.788, 110, 1.25, 0.84);
+  gull(W*0.825, 134, 0.92, 0.72);
+  gull(W*0.861, 97, 1.05, 0.76);
+  gull(W*0.463, 72, 0.88, 0.66);
+  gull(W*0.495, 92, 0.76, 0.62);
+
+  // 튜브 (도넛 모양)
+  function tube(x, y, outerR, innerR, colors, alpha) {
+    cx.save(); cx.globalAlpha = alpha;
+    const n = colors.length;
+    for (let i = 0; i < n; i++) {
+      const a1 = (Math.PI*2/n)*i - Math.PI/2;
+      const a2 = (Math.PI*2/n)*(i+1) - Math.PI/2;
+      cx.beginPath();
+      cx.arc(x, y, outerR, a1, a2);
+      cx.arc(x, y, innerR, a2, a1, true);
+      cx.closePath();
+      cx.fillStyle = colors[i]; cx.fill();
+      cx.strokeStyle = 'rgba(255,255,255,0.65)'; cx.lineWidth = 2.5; cx.stroke();
+    }
+    // 광택
+    const sh = cx.createRadialGradient(x - outerR*0.3, y - outerR*0.35, 3, x, y, outerR);
+    sh.addColorStop(0, 'rgba(255,255,255,0.42)');
+    sh.addColorStop(0.6, 'rgba(255,255,255,0.06)');
+    sh.addColorStop(1, 'rgba(255,255,255,0)');
+    cx.fillStyle = sh;
+    cx.beginPath(); cx.arc(x, y, outerR, 0, Math.PI*2);
+    cx.arc(x, y, innerR, Math.PI*2, 0, true);
+    cx.fill();
+    cx.restore();
+  }
+  // 왼쪽 빨간 튜브
+  tube(90, H - 108, 72, 30, ['#FF3B30','#FFFFFF','#FF3B30','#FFFFFF','#FF3B30','#FFFFFF'], 0.86);
+  // 오른쪽 노란 튜브
+  tube(W - 108, H - 128, 64, 27, ['#FFD700','#FFFFFF','#FFD700','#FFFFFF','#FFD700','#FFFFFF'], 0.82);
+
+  // 바다 햇빛 반짝임 (별모양 스파클, x 좌표 W 비율로)
+  cx.save(); cx.fillStyle = 'rgba(255,255,255,0.85)';
+  [[W*.196,H*.57],[W*.292,H*.605],[W*.434,H*.582],[W*.561,H*.615],[W*.703,H*.578],[W*.813,H*.603],[W*.953,H*.572]].forEach(([x,y],i) => {
+    cx.globalAlpha = 0.3 + (Math.sin(x*0.07+i)*0.5+0.5)*0.25;
+    cx.save(); cx.translate(x, y);
+    cx.beginPath();
+    for(let a=0;a<4;a++){
+      cx.lineTo(Math.cos((a*2)*Math.PI/4)*6, Math.sin((a*2)*Math.PI/4)*6);
+      cx.lineTo(Math.cos((a*2+1)*Math.PI/4)*2.5, Math.sin((a*2+1)*Math.PI/4)*2.5);
+    }
+    cx.closePath(); cx.fill(); cx.restore();
+  });
+  cx.restore();
+
+  // 중앙 살짝 밝은 오버레이 (텍스트 가독성)
+  const ov = cx.createRadialGradient(W/2, H*0.45, 60, W/2, H*0.45, W*0.52);
+  ov.addColorStop(0, 'rgba(255,255,255,0.10)');
+  ov.addColorStop(0.65, 'rgba(255,255,255,0.03)');
+  ov.addColorStop(1, 'rgba(255,255,255,0)');
+  cx.fillStyle = ov; cx.fillRect(0, 0, W, H);
+}
+
+// ─── Display ───
+function showCards() {
+  const grid=document.getElementById('cardsGrid'); grid.innerHTML='';
+  document.getElementById('cntBadge').textContent=S.cards.length;
+  S.cards.forEach((c,i)=>{
+    const d=document.createElement('div'); d.className='cthumb';
+    d.style.animationDelay = `${Math.min(i*25,300)}ms`;
+    const img=document.createElement('img'); img.src=c.dataUrl; img.alt=c.name; img.loading='lazy';
+    const lbl=document.createElement('div'); lbl.className='clbl'; lbl.textContent=c.name;
+    const dlb=document.createElement('button'); dlb.className='cdl'; dlb.textContent='💾';
+    dlb.onclick=()=>dlOne(c,i);
+    d.appendChild(img); d.appendChild(lbl); d.appendChild(dlb); grid.appendChild(d);
+  });
+  const rp=document.getElementById('resultPanel');
+  rp.classList.remove('hidden');
+  rp.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function dlOne(c,i) {
+  const a=document.createElement('a'); a.href=c.dataUrl;
+  a.download=`${String(i+1).padStart(2,'0')}_${c.name}.png`; a.click();
+}
+async function dlZip() {
+  if(!S.cards.length)return;
+  const btn=document.getElementById('zipBtn');
+  btn.disabled=true; btn.textContent='⏳ ZIP 압축 중...';
+  const zip=new JSZip(), fld=zip.folder('축하장');
+  S.cards.forEach((c,i)=>{ fld.file(`${String(i+1).padStart(2,'0')}_${c.name}.png`,c.dataUrl.split(',')[1],{base64:true}); });
+  const blob=await zip.generateAsync({type:'blob'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='축하장_전체.zip'; a.click();
+  URL.revokeObjectURL(url);
+  btn.disabled=false; btn.textContent='📥 전체 ZIP 다운로드';
+}
+</script>
+</body>
+</html>
