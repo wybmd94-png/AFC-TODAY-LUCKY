@@ -148,6 +148,25 @@
   .line b { color: #b8895a; }
   .line.heart { color: #c96b52; font-weight: 700; }
 
+  .acrostic {
+    margin: 22px 14px 4px; padding: 1rem 1.1rem;
+    background: #fff6ec; border: 1.5px dashed #e6bd8b; border-radius: 12px;
+    opacity: 0; transform: translateY(6px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .acrostic.in { opacity: 1; transform: translateY(0); }
+  .acrostic-title {
+    text-align: center; font-size: 13px; font-weight: 800; color: #b8895a;
+    letter-spacing: 0.3px; margin-bottom: 10px;
+  }
+  .acro-line {
+    font-size: 14px; line-height: 26px; color: #5a4632;
+  }
+  .acro-ch {
+    display: inline-block; min-width: 20px; text-align: center;
+    font-weight: 800; color: #d4634a; margin-right: 4px;
+  }
+
   .paper-sign {
     margin-top: 22px; padding-left: 14px; text-align: right;
     opacity: 0; transition: opacity 0.6s ease;
@@ -208,8 +227,8 @@
 
   <div class="intro">
     <span class="eyebrow">Thank You</span>
-    <h1>봉투를 눌러 편지를<br>열어보세요</h1>
-    <p>클릭 한 번이면 마음이 도착합니다 🤍</p>
+    <h1>이현범 단장님께<br>드리는 편지</h1>
+    <p>봉투를 눌러 마음을 열어보세요 🤍</p>
   </div>
 
   <div class="envelope-wrap">
@@ -228,22 +247,30 @@
     <div class="paper">
       <div class="stamp" id="stamp">🍀</div>
       <div class="paper-head">
-        <div class="to">To. 소중한 당신께</div>
-        <h2>진심으로<br>감사드립니다</h2>
+        <div class="to">To. 이현범 단장님</div>
+        <h2>진심으로<br>감동받았습니다</h2>
       </div>
       <div class="paper-body" id="paper-body">
-        <p class="line" data-d="0">항상 곁에서 믿어주시고</p>
-        <p class="line" data-d="1"><b>응원해주셔서</b> 정말 감사합니다.</p>
-        <p class="line" data-d="2">당신의 작은 관심 하나가</p>
-        <p class="line" data-d="3">저에게는 큰 힘이 되었어요.</p>
-        <p class="line" data-d="4">&nbsp;</p>
-        <p class="line" data-d="5">앞으로도 오늘처럼</p>
-        <p class="line" data-d="6">한결같은 마음으로 나아가겠습니다.</p>
-        <p class="line heart" data-d="7">늘 건강하시고 행복하시길 바라요 🍀</p>
+        <p class="line" data-d="0">단장님! 진심으로... <b>세심한 선물</b>에</p>
+        <p class="line" data-d="1">감동받았습니다.</p>
+        <p class="line" data-d="2">&nbsp;</p>
+        <p class="line" data-d="3">글로벌주니어연수 도와주신 것도</p>
+        <p class="line" data-d="4">감동인데, 잘 갔다 오라고</p>
+        <p class="line" data-d="5">이렇게 챙겨주시다니...</p>
+        <p class="line heart" data-d="6">진짜 너무 감동받았습니다 ㅠㅠ</p>
+        <p class="line heart" data-d="7">단장님, 진짜 최고예요!</p>
       </div>
+
+      <div class="acrostic" id="acrostic">
+        <div class="acrostic-title">🎉 이현범 삼행시 🎉</div>
+        <p class="acro-line"><span class="acro-ch">이</span>이현범 단장님</p>
+        <p class="acro-line"><span class="acro-ch">현</span>존하는 최고의</p>
+        <p class="acro-line"><span class="acro-ch">범</span>접 불가 월클</p>
+      </div>
+
       <div class="paper-sign" id="paper-sign">
         <div class="date" id="letter-date"></div>
-        <div class="from">마음을 담아, 드림</div>
+        <div class="from">감사한 마음을 담아, 드림</div>
       </div>
     </div>
 
@@ -293,15 +320,21 @@
   }
 
   function revealLines() {
-    document.querySelectorAll('.line').forEach(el => {
-      const delay = parseInt(el.dataset.d, 10) * 260;
-      setTimeout(() => el.classList.add('in'), 350 + delay);
+    const lines = document.querySelectorAll('.line');
+    let maxIndex = 0;
+    lines.forEach(el => {
+      const idx = parseInt(el.dataset.d, 10);
+      maxIndex = Math.max(maxIndex, idx);
+      setTimeout(() => el.classList.add('in'), 350 + idx * 260);
     });
     setTimeout(() => document.getElementById('stamp').classList.add('in'), 400);
+
+    const afterLines = 350 + maxIndex * 260 + 260;
+    setTimeout(() => document.getElementById('acrostic').classList.add('in'), afterLines);
     setTimeout(() => {
       document.getElementById('paper-sign').classList.add('in');
       document.getElementById('actions').classList.add('show');
-    }, 350 + 8 * 260 + 200);
+    }, afterLines + 450);
   }
 
   function sendHeart(e) {
@@ -333,6 +366,7 @@
     letter.classList.remove('show');
     document.querySelectorAll('.line').forEach(el => el.classList.remove('in'));
     document.getElementById('stamp').classList.remove('in');
+    document.getElementById('acrostic').classList.remove('in');
     document.getElementById('paper-sign').classList.remove('in');
     document.getElementById('actions').classList.remove('show');
     document.getElementById('thanks-msg').classList.remove('show');
