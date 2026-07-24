@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>감사의 마음을 전합니다</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    background: linear-gradient(160deg, #fdf6ec 0%, #f7ecdd 45%, #f3e4cd 100%);
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* 배경에 떠다니는 장식 */
+  .floaters { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+  .floaters span {
+    position: absolute; bottom: -40px; font-size: 22px; opacity: 0;
+    animation: floatUp 9s ease-in infinite;
+  }
+  @keyframes floatUp {
+    0% { opacity: 0; transform: translateY(0) translateX(0) rotate(0deg); }
+    10% { opacity: 0.85; }
+    90% { opacity: 0.6; }
+    100% { opacity: 0; transform: translateY(-110vh) translateX(var(--drift, 20px)) rotate(25deg); }
+  }
+
+  .stage { position: relative; z-index: 1; width: 100%; max-width: 440px; }
+
+  /* ===== 인트로 문구 ===== */
+  .intro { text-align: center; margin-bottom: 1.75rem; }
+  .intro .eyebrow {
+    display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 2px;
+    color: #b8895a; text-transform: uppercase; margin-bottom: 10px;
+  }
+  .intro h1 { font-size: 22px; font-weight: 800; color: #4a3626; letter-spacing: -0.3px; line-height: 1.5; }
+  .intro p { font-size: 13px; color: #9c8267; margin-top: 8px; }
+
+  /* ===== 봉투 ===== */
+  .envelope-wrap { display: flex; justify-content: center; margin-bottom: 1rem; }
+  .envelope {
+    position: relative;
+    width: 300px;
+    height: 190px;
+    cursor: pointer;
+    filter: drop-shadow(0 14px 24px rgba(120, 90, 50, 0.22));
+    transition: transform 0.25s ease;
+  }
+  .envelope:hover { transform: translateY(-3px); }
+  .envelope.opened { cursor: default; }
+  .envelope.opened:hover { transform: none; }
+
+  .env-body {
+    position: absolute; inset: 0; top: 34px;
+    background: linear-gradient(180deg, #fffaf3 0%, #fbeee0 100%);
+    border: 1px solid #e9d3b8;
+    border-radius: 10px;
+    z-index: 1;
+  }
+  .env-shade-l, .env-shade-r {
+    position: absolute; top: 34px; width: 0; height: 0;
+    border-style: solid; z-index: 2; opacity: 0.55;
+  }
+  .env-shade-l { left: 0; border-width: 78px 0 78px 150px; border-color: transparent transparent transparent #f3e1cb; }
+  .env-shade-r { right: 0; border-width: 78px 150px 78px 0; border-color: transparent #f3e1cb transparent transparent; }
+
+  .env-flap {
+    position: absolute; top: 0; left: 0; width: 300px; height: 130px;
+    background: linear-gradient(160deg, #f6d9b8 0%, #eec39a 100%);
+    clip-path: polygon(0 0, 100% 0, 50% 82%);
+    transform-origin: top center;
+    transition: transform 0.7s cubic-bezier(.6,-0.28,.35,1.4);
+    z-index: 4;
+    border-radius: 6px 6px 0 0;
+  }
+  .envelope.opened .env-flap { transform: rotateX(178deg); z-index: 0; }
+
+  .env-seal {
+    position: absolute; top: 78px; left: 50%; transform: translate(-50%, -50%);
+    width: 48px; height: 48px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #e2795a, #c14f34 70%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; color: #ffe9db; z-index: 5;
+    box-shadow: 0 3px 6px rgba(150, 60, 30, 0.4);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .envelope.opened .env-seal { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+
+  .env-letter-peek {
+    position: absolute; left: 20px; right: 20px; top: 44px; bottom: 12px;
+    background: #fffdf9; border: 1px solid #ecdfc9; border-radius: 6px;
+    z-index: 3; transition: transform 0.6s ease 0.15s; transform: translateY(0);
+  }
+  .envelope.opened .env-letter-peek { transform: translateY(-46px); }
+
+  .env-hint {
+    text-align: center; font-size: 12.5px; color: #a98a63; margin-top: 14px;
+    letter-spacing: 0.2px;
+  }
+  .env-hint b { color: #7a5a37; }
+
+  /* ===== 편지지 ===== */
+  .letter {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.7s ease, opacity 0.6s ease 0.1s, margin 0.7s ease;
+    margin-top: 0;
+  }
+  .letter.show { max-height: 1400px; opacity: 1; margin-top: 1.25rem; }
+
+  .paper {
+    position: relative;
+    background: #fffdf8;
+    border: 1px solid #ecdfc7;
+    border-radius: 14px;
+    padding: 2rem 1.6rem 1.75rem;
+    box-shadow: 0 18px 40px rgba(120, 90, 50, 0.14);
+    background-image:
+      linear-gradient(#f4e9d6 1px, transparent 1px);
+    background-size: 100% 28px;
+    background-position: 0 92px;
+  }
+  .paper::before {
+    content: ''; position: absolute; top: 0; left: 26px; bottom: 0; width: 1px;
+    background: #f1cfc5;
+  }
+  .paper-head { text-align: center; margin-bottom: 6px; padding-left: 14px; }
+  .paper-head .to { font-size: 13px; color: #b8895a; font-weight: 700; letter-spacing: 0.5px; }
+  .paper-head h2 {
+    font-size: 21px; font-weight: 800; color: #4a3626; margin-top: 8px; line-height: 1.6;
+  }
+
+  .paper-body { padding-left: 14px; margin-top: 18px; }
+  .line {
+    font-size: 14.5px; line-height: 28px; color: #5a4632;
+    opacity: 0; transform: translateY(6px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .line.in { opacity: 1; transform: translateY(0); }
+  .line b { color: #b8895a; }
+  .line.heart { color: #c96b52; font-weight: 700; }
+
+  .acrostic {
+    margin: 22px 14px 4px; padding: 1rem 1.1rem;
+    background: #fff6ec; border: 1.5px dashed #e6bd8b; border-radius: 12px;
+    opacity: 0; transform: translateY(6px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .acrostic.in { opacity: 1; transform: translateY(0); }
+  .acrostic-title {
+    text-align: center; font-size: 13px; font-weight: 800; color: #b8895a;
+    letter-spacing: 0.3px; margin-bottom: 10px;
+  }
+  .acro-line {
+    font-size: 14px; line-height: 26px; color: #5a4632;
+  }
+  .acro-ch {
+    display: inline-block; min-width: 20px; text-align: center;
+    font-weight: 800; color: #d4634a; margin-right: 4px;
+  }
+
+  .paper-sign {
+    margin-top: 22px; padding-left: 14px; text-align: right;
+    opacity: 0; transition: opacity 0.6s ease;
+  }
+  .paper-sign.in { opacity: 1; }
+  .paper-sign .date { font-size: 12px; color: #b3a184; }
+  .paper-sign .from { font-size: 15px; font-weight: 700; color: #4a3626; margin-top: 6px; }
+
+  .stamp {
+    position: absolute; top: 16px; right: 18px; width: 46px; height: 56px;
+    border: 2px dashed #e2c39c; border-radius: 4px; display: flex; align-items: center;
+    justify-content: center; font-size: 22px; transform: rotate(8deg);
+    color: #d99a58; background: #fff9ee;
+    opacity: 0; transition: opacity 0.5s ease 0.3s, transform 0.5s ease 0.3s;
+  }
+  .stamp.in { opacity: 1; transform: rotate(4deg); }
+
+  /* ===== 하트 보내기 버튼 ===== */
+  .actions {
+    display: none; margin-top: 1.4rem; text-align: center;
+  }
+  .actions.show { display: block; }
+  .heart-btn {
+    padding: 13px 26px; background: linear-gradient(135deg, #e88a6b, #d4634a);
+    color: #fff; border: none; border-radius: 999px; font-size: 14.5px; font-weight: 700;
+    cursor: pointer; box-shadow: 0 8px 18px rgba(212, 99, 74, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    letter-spacing: -0.1px;
+  }
+  .heart-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(212, 99, 74, 0.45); }
+  .heart-btn:active { transform: scale(0.97); }
+  .replay-btn {
+    display: block; margin: 12px auto 0; background: none; border: none;
+    font-size: 12.5px; color: #b09877; text-decoration: underline; cursor: pointer;
+  }
+  .thanks-msg {
+    font-size: 13px; color: #c96b52; margin-top: 10px; opacity: 0;
+    transition: opacity 0.4s ease; font-weight: 600;
+  }
+  .thanks-msg.show { opacity: 1; }
+
+  /* 클릭 시 터지는 하트 파티클 */
+  .burst { position: fixed; pointer-events: none; font-size: 20px; z-index: 50; }
+
+  @media (max-width: 380px) {
+    .envelope { width: 260px; height: 168px; }
+    .env-flap { width: 260px; }
+    .env-shade-l { border-width: 68px 0 68px 130px; }
+    .env-shade-r { border-width: 68px 130px 68px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="floaters" id="floaters"></div>
+
+<div class="stage">
+
+  <div class="intro">
+    <span class="eyebrow">Thank You</span>
+    <h1>이현범 단장님께<br>드리는 편지</h1>
+    <p>봉투를 눌러 마음을 열어보세요 🤍</p>
+  </div>
+
+  <div class="envelope-wrap">
+    <div class="envelope" id="envelope" onclick="openEnvelope()">
+      <div class="env-letter-peek"></div>
+      <div class="env-body"></div>
+      <div class="env-shade-l"></div>
+      <div class="env-shade-r"></div>
+      <div class="env-flap"></div>
+      <div class="env-seal">💌</div>
+    </div>
+  </div>
+  <p class="env-hint" id="env-hint">봉투를 <b>탭</b>해서 열어보세요</p>
+
+  <div class="letter" id="letter">
+    <div class="paper">
+      <div class="stamp" id="stamp">🍀</div>
+      <div class="paper-head">
+        <div class="to">To. 이현범 단장님</div>
+        <h2>진심으로<br>감동받았습니다</h2>
+      </div>
+      <div class="paper-body" id="paper-body">
+        <p class="line" data-d="0">단장님! 진심으로... <b>세심한 선물</b>에</p>
+        <p class="line" data-d="1">감동받았습니다.</p>
+        <p class="line" data-d="2">&nbsp;</p>
+        <p class="line" data-d="3">글로벌주니어연수 도와주신 것도</p>
+        <p class="line" data-d="4">감동인데, 잘 갔다 오라고</p>
+        <p class="line" data-d="5">이렇게 챙겨주시다니...</p>
+        <p class="line heart" data-d="6">진짜 너무 감동받았습니다 ㅠㅠ</p>
+        <p class="line heart" data-d="7">단장님, 진짜 최고예요!</p>
+      </div>
+
+      <div class="acrostic" id="acrostic">
+        <div class="acrostic-title">🎉 이현범 삼행시 🎉</div>
+        <p class="acro-line"><span class="acro-ch">이</span>이현범 단장님</p>
+        <p class="acro-line"><span class="acro-ch">현</span>존하는 최고의</p>
+        <p class="acro-line"><span class="acro-ch">범</span>접 불가 월클</p>
+      </div>
+
+      <div class="paper-sign" id="paper-sign">
+        <div class="date" id="letter-date"></div>
+        <div class="from">감사한 마음을 담아, 드림</div>
+      </div>
+    </div>
+
+    <div class="actions" id="actions">
+      <button class="heart-btn" onclick="sendHeart(event)">💛 마음 전하기</button>
+      <p class="thanks-msg" id="thanks-msg">전해졌습니다. 읽어주셔서 감사해요 :)</p>
+      <button class="replay-btn" onclick="replay()">다시 봉투 닫고 보기 ↺</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function setDate() {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = today.getMonth() + 1;
+    const d = today.getDate();
+    document.getElementById('letter-date').textContent = y + '년 ' + m + '월 ' + d + '일';
+  }
+
+  function spawnFloaters() {
+    const emojis = ['🍀', '💌', '✨', '🤍'];
+    const wrap = document.getElementById('floaters');
+    for (let i = 0; i < 14; i++) {
+      const s = document.createElement('span');
+      s.textContent = emojis[i % emojis.length];
+      s.style.left = Math.random() * 100 + 'vw';
+      s.style.setProperty('--drift', (Math.random() * 80 - 40) + 'px');
+      s.style.animationDelay = (Math.random() * 9) + 's';
+      s.style.animationDuration = (7 + Math.random() * 5) + 's';
+      wrap.appendChild(s);
+    }
+  }
+
+  function openEnvelope() {
+    const env = document.getElementById('envelope');
+    if (env.classList.contains('opened')) return;
+    env.classList.add('opened');
+    document.getElementById('env-hint').style.opacity = '0';
+
+    setTimeout(() => {
+      const letter = document.getElementById('letter');
+      letter.classList.add('show');
+      revealLines();
+    }, 550);
+  }
+
+  function revealLines() {
+    const lines = document.querySelectorAll('.line');
+    let maxIndex = 0;
+    lines.forEach(el => {
+      const idx = parseInt(el.dataset.d, 10);
+      maxIndex = Math.max(maxIndex, idx);
+      setTimeout(() => el.classList.add('in'), 350 + idx * 260);
+    });
+    setTimeout(() => document.getElementById('stamp').classList.add('in'), 400);
+
+    const afterLines = 350 + maxIndex * 260 + 260;
+    setTimeout(() => document.getElementById('acrostic').classList.add('in'), afterLines);
+    setTimeout(() => {
+      document.getElementById('paper-sign').classList.add('in');
+      document.getElementById('actions').classList.add('show');
+    }, afterLines + 450);
+  }
+
+  function sendHeart(e) {
+    for (let i = 0; i < 12; i++) {
+      const b = document.createElement('span');
+      b.className = 'burst';
+      b.textContent = ['💛','🍀','✨','💌'][i % 4];
+      const x = e.clientX, y = e.clientY;
+      b.style.left = x + 'px';
+      b.style.top = y + 'px';
+      document.body.appendChild(b);
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 60 + Math.random() * 90;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist - 40;
+      b.animate([
+        { transform: 'translate(0,0) scale(1)', opacity: 1 },
+        { transform: `translate(${dx}px, ${dy}px) scale(0.4)`, opacity: 0 }
+      ], { duration: 900 + Math.random() * 400, easing: 'ease-out' });
+      setTimeout(() => b.remove(), 1400);
+    }
+    const msg = document.getElementById('thanks-msg');
+    msg.classList.add('show');
+  }
+
+  function replay() {
+    const env = document.getElementById('envelope');
+    const letter = document.getElementById('letter');
+    letter.classList.remove('show');
+    document.querySelectorAll('.line').forEach(el => el.classList.remove('in'));
+    document.getElementById('stamp').classList.remove('in');
+    document.getElementById('acrostic').classList.remove('in');
+    document.getElementById('paper-sign').classList.remove('in');
+    document.getElementById('actions').classList.remove('show');
+    document.getElementById('thanks-msg').classList.remove('show');
+    setTimeout(() => {
+      env.classList.remove('opened');
+      document.getElementById('env-hint').style.opacity = '1';
+    }, 400);
+  }
+
+  setDate();
+  spawnFloaters();
+</script>
+</body>
+</html>
