@@ -1029,9 +1029,23 @@ if (exportBtn) exportBtn.addEventListener('click', () => {
   // 기준일은 저장된 값 대신 접속 기기의 네트워크 시간 기준 '전일'로 항상 자동 갱신
   DATA.updatedAt = getNetworkYesterdayStr();
   // 법인명 인덱스 → 실제 이름 복원
-  if(DATA.corps){DATA.records.forEach(r=>{r[1]=DATA.corps[r[1]];});}
-  if(DATA.contCorps){DATA.contracts.forEach(r=>{r[1]=DATA.contCorps[r[1]];});}
-  if(DATA.ssCorps){DATA.sangseol.forEach(r=>{r[1]=DATA.ssCorps[r[1]];});}
+  // r[1]이 이미 실제 법인명 문자열인 경우(재업로드 등)에는 그대로 두고,
+  // 숫자 인덱스일 때만 조회 테이블에서 실제 이름으로 치환한다.
+  // (그렇지 않으면 문자열 키로 배열을 조회해 undefined가 되어 지사명이 사라짐)
+  function resolveCorpNames(rows, table){
+    if (!table || !rows) return;
+    rows.forEach(r => {
+      const idx = r[1];
+      if (typeof idx === 'number' && table[idx] !== undefined) {
+        r[1] = table[idx];
+      } else if (typeof idx === 'string' && /^\d+$/.test(idx) && table[Number(idx)] !== undefined) {
+        r[1] = table[Number(idx)];
+      }
+    });
+  }
+  resolveCorpNames(DATA.records, DATA.corps);
+  resolveCorpNames(DATA.contracts, DATA.contCorps);
+  resolveCorpNames(DATA.sangseol, DATA.ssCorps);
   document.getElementById('app-title').textContent = DATA.title;
   document.getElementById('updated-at').textContent = DATA.updatedAt + ' 기준';
   const titleInput = document.getElementById('title-input');
