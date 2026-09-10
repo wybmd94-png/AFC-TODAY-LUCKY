@@ -562,13 +562,15 @@ function getTouchLists(branch){
 function getCardTouchLists(branch){
   const recs = DATA.records.filter(r => r[0] === branch);
   const toFC = r => ({n: r[2], c: normalizeCorp(r[1]), h: r[3]});
+  // 건강15만 명단은 건강월초_당월(3)이 아니라 건강15만월초(10, AP열) 기준으로 판정·표시
+  const toFC15 = r => ({n: r[2], c: normalizeCorp(r[1]), h: r[10]});
   // records: [지점(0), 법인(1), FC명(2), 건강월초(3), CA용1W당월(4), 플러스원당월(5),
-  //           일시납연금(6), 플러스원타겟(7), 종신고액타겟(8), 직3미가동(9)]
+  //           일시납연금(6), 플러스원타겟(7), 종신고액타겟(8), 직3미가동(9), 건강15만월초(10)]
   return {
-    active:    recs.filter(r => (r[4]||0) >= 1 && (r[3]||0) >= 40000).map(toFC),   // CA용1W_당월≥1 AND 건강월초_당월≥40,000
-    recovered: recs.filter(r => (r[9]||0) === 0 && (r[4]||0) >= 1).map(toFC),       // 직3미가동=0 AND CA용1W_당월≥1
-    health15:  recs.filter(r => (r[3]||0) >= 150000).map(toFC),                     // 건강월초_당월 ≥ 150,000
-    plusone:   recs.filter(r => (r[5]||0) >= 1).map(toFC)                            // 플러스원_당월 ≥ 1
+    active:    recs.filter(r => (r[4]||0) >= 1 && (r[3]||0) >= 40000).map(toFC),     // CA용1W_당월≥1 AND 건강월초_당월≥40,000
+    recovered: recs.filter(r => (r[9]||0) === 0 && (r[4]||0) >= 1).map(toFC),         // 직3미가동=0 AND CA용1W_당월≥1
+    health15:  recs.filter(r => (r[10]||0) >= 150000).map(toFC15),                    // 건강15만월초(AP열) ≥ 150,000
+    plusone:   recs.filter(r => (r[5]||0) >= 1).map(toFC)                              // 플러스원_당월 ≥ 1
   };
 }
 
@@ -1246,7 +1248,7 @@ function parseCoachingTSV(text){
 function parseRecordsTSV(text){
   // 헤더 이름 기반 동적 파싱: 열 순서가 바뀌어도 헤더 텍스트로 찾음
   // 필요 헤더: 지점명, 대리점명, 인사명, 건강월초_당월, CA용1W_당월,
-  //            플러스원_당월, 일시납연금, 플러스원 타겟, 종신고액 타겟, 직3미가동
+  //            플러스원_당월, 일시납연금, 플러스원 타겟, 종신고액 타겟, 직3미가동, 건강15만월초
   const lines = text.split(/\r\n|\r|\n/).filter(l => l.trim().length > 0);
   const records = [];
 
@@ -1273,7 +1275,7 @@ function parseRecordsTSV(text){
 
   for (let i = dataStart; i < lines.length; i++){
     const cells = lines[i].split('\t');
-    let branchName, corpName, fcName, h, am, ai, ar, au, aw, ay;
+    let branchName, corpName, fcName, h, am, ai, ar, au, aw, ay, ap;
 
     if (useHeader){
       branchName = gc(cells, '지점명').trim().replace(/지점$/, '').trim();
@@ -1286,6 +1288,7 @@ function parseRecordsTSV(text){
       au = gn(cells, '플러스원 타겟');   // AU열
       aw = gn(cells, '종신고액 타겟');   // AW열
       ay = gn(cells, '직3미가동');       // AY열
+      ap = gn(cells, '건강15만월초');    // AP열 — 건강15만 달성 기준 금액(이 값이 150,000 이상인 사람이 대상자)
     } else {
       // fallback: 고정 인덱스 (A=0 기준)
       branchName = (cells[3]||'').trim().replace(/지점$/,'').trim();
@@ -1298,6 +1301,7 @@ function parseRecordsTSV(text){
       au = parseNumber(cells[46]);
       aw = parseNumber(cells[48]);
       ay = parseNumber(cells[50]);
+      ap = parseNumber(cells[41]);
     }
 
     if (!branchName || branchName === '지점명' || branchName === '지점') continue;
@@ -1305,8 +1309,8 @@ function parseRecordsTSV(text){
     if (!fcName || fcName === '인사명') continue;
 
     // records: [지점(0), 법인(1), FC명(2), 건강월초(3), CA용1W당월(4), 플러스원당월(5),
-    //           일시납연금(6), 플러스원타겟(7), 종신고액타겟(8), 직3미가동(9)]
-    records.push([branchName, corpName, fcName, h, am, ai, ar, au, aw, ay]);
+    //           일시납연금(6), 플러스원타겟(7), 종신고액타겟(8), 직3미가동(9), 건강15만월초(10)]
+    records.push([branchName, corpName, fcName, h, am, ai, ar, au, aw, ay, ap]);
   }
   return records;
 }
