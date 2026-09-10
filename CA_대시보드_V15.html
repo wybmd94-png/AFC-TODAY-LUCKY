@@ -1125,7 +1125,14 @@ function doSearch(raw){
   resultEl.innerHTML = html;
 }
 
-// ── localStorage 당월 상설 누적 관리
+// ── 당월 상설 누적 관리
+// 예전에는 localStorage에만 쌓았는데, 파일을 매일 새로 다운받아 여는 방식이라
+// 브라우저 localStorage는 그 파일(주소)에만 묶여 있고 다음날 새 파일을 열면
+// 다른 origin 취급돼서 어제까지 쌓인 상설이 안 보이는 문제가 있었음.
+// → 이제는 DATA.sangseolHistory(파일 자체에 저장되는 값)를 정본으로 쓰고,
+//   내보내기(다운로드) 할 때 이 값이 그대로 같이 저장되므로 다음날 파일에도
+//   이번 달 누적 기록이 이어져서 들어있음. localStorage는 같은 브라우저에서
+//   재방문할 때를 위한 보조 캐시로만 남겨둠.
 const _SS_KEY = 'afc_ss_';
 function _ssMonth(){
   const d=new Date();
@@ -1135,39 +1142,55 @@ function saveSangseolToday(sangseol, dateStr){
   if(!sangseol||!sangseol.length) return;
   const day=(dateStr&&/^\d{4}-\d{2}-\d{2}/.test(dateStr))?dateStr.slice(0,10):new Date().toISOString().slice(0,10);
   const month=day.slice(0,7);
-  const key=_SS_KEY+month;
-  let stored={};
-  try{stored=JSON.parse(localStorage.getItem(key)||'{}');}catch(e){}
-  stored[day]=sangseol;
+
+  if(!DATA.sangseolHistory) DATA.sangseolHistory = {};
+  // 이번 달 외 기록은 정리
+  Object.keys(DATA.sangseolHistory).forEach(k=>{ if(k.slice(0,7)!==month) delete DATA.sangseolHistory[k]; });
+  DATA.sangseolHistory[day] = sangseol;
+
+  // 보조 캐시(있으면 좋고, 없어도 DATA.sangseolHistory로 동작함)
   try{
+    const key=_SS_KEY+month;
+    let stored={};
+    try{stored=JSON.parse(localStorage.getItem(key)||'{}');}catch(e){}
+    stored[day]=sangseol;
     localStorage.setItem(key,JSON.stringify(stored));
-    // 이전 달 자동 정리
     for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith(_SS_KEY)&&k!==key)localStorage.removeItem(k);}
-  }catch(e){console.warn('SS store err',e);}
+  }catch(e){console.warn('SS cache err',e);}
+}
+// 이전 버전 파일(로컬 저장만 쓰던 시절)의 브라우저 캐시가 남아 있으면
+// 이번 달치를 DATA.sangseolHistory로 끌어와 병합 (있는 날짜는 덮어쓰지 않음)
+function migrateSangseolFromLocalStorage(){
+  try{
+    const key=_SS_KEY+_ssMonth();
+    const stored=JSON.parse(localStorage.getItem(key)||'{}');
+    if(!DATA.sangseolHistory) DATA.sangseolHistory = {};
+    Object.keys(stored).forEach(day=>{
+      if(day.slice(0,7)===_ssMonth() && !DATA.sangseolHistory[day]) DATA.sangseolHistory[day]=stored[day];
+    });
+  }catch(e){}
 }
 function getAccumulatedSangseol(){
-  const key=_SS_KEY+_ssMonth();
-  let stored={};
-  try{stored=JSON.parse(localStorage.getItem(key)||'{}');}catch(e){}
+  const month=_ssMonth();
+  const hist=DATA.sangseolHistory||{};
   const all=[];
   // 날짜순 정렬 후 r[5]=날짜 추가
-  Object.entries(stored).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([day,recs])=>{
+  Object.entries(hist).filter(([day])=>day.slice(0,7)===month).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([day,recs])=>{
     if(Array.isArray(recs)) recs.forEach(r=>all.push([r[0],r[1],r[2],r[3],r[4],day]));
   });
   return all;
 }
 function getSangseolStoreSummary(){
-  const key=_SS_KEY+_ssMonth();
-  let stored={};
-  try{stored=JSON.parse(localStorage.getItem(key)||'{}');}catch(e){}
-  const days=Object.keys(stored).sort();
-  const total=Object.values(stored).reduce((s,r)=>s+(Array.isArray(r)?r.length:0),0);
+  const month=_ssMonth();
+  const hist=DATA.sangseolHistory||{};
+  const days=Object.keys(hist).filter(d=>d.slice(0,7)===month).sort();
+  const total=days.reduce((s,d)=>s+(Array.isArray(hist[d])?hist[d].length:0),0);
   return {days,total};
 }
 
 
 function renderAll(){
-  // 현재 상설 데이터를 localStorage에 자동 저장 (당월 누적)
+  // 현재 상설 데이터를 이번 달 누적 기록(DATA.sangseolHistory)에 자동 저장
   if(DATA.sangseol && DATA.sangseol.length){
     saveSangseolToday(DATA.sangseol, DATA.updatedAt);
   }
@@ -1477,6 +1500,8 @@ if (exportBtn) exportBtn.addEventListener('click', () => {
     const fab = document.getElementById('data-fab');
     if (fab) fab.remove();
   }
+  // 이전에 이 브라우저에 저장돼 있던 상설 누적(localStorage)이 있으면 병합
+  migrateSangseolFromLocalStorage();
   renderAll();
 })();
 </script>
