@@ -1206,13 +1206,22 @@ document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
   const pid = btn.dataset.page;
-  document.getElementById(pid).classList.add('active');
+  const pageEl = document.getElementById(pid);
+  if (!pageEl) return;
+  pageEl.classList.add('active');
   if (!_lazied[pid]) {
-    _lazied[pid] = true;
-    if (pid === 'page2') renderPage2();
-    else if (pid === 'page4') renderPage4();
-    else if (pid === 'page5') renderPage5();
-    else if (pid === 'page6') renderPage6();
+    try {
+      if (pid === 'page2') renderPage2();
+      else if (pid === 'page4') renderPage4();
+      else if (pid === 'page5') renderPage5();
+      else if (pid === 'page6') renderPage6();
+      _lazied[pid] = true;
+    } catch (e) {
+      // 탭 전환 자체는 항상 되게 하고, 화면을 못 그렸을 때는 빈 화면 대신 원인을 보여줌
+      // (다음 클릭에서 다시 시도할 수 있도록 _lazied는 true로 표시하지 않음)
+      console.error('tab render error:', pid, e);
+      pageEl.innerHTML = '<p style="color:var(--muted);font-size:13px;padding:20px 8px;">⚠️ 이 탭을 불러오는 중 오류가 발생했습니다.<br>새로고침 후에도 반복되면 알려주세요.<br><span style="font-size:11px;opacity:.7;">' + (e && e.message ? String(e.message).replace(/</g,'&lt;') : '') + '</span></p>';
+    }
   }
 }));
 
